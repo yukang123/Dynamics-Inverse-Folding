@@ -441,7 +441,7 @@ def main(args):
             assert BATCH_COPIES == 1
             seq_rec_rate_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
             correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
-            inter_correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
+            # inter_correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
             for i in range(len(S_sample_all_list)):
                 for j in range(len(S_sample_all_list)):
                     seq_recovery_rate = torch.sum(
@@ -459,22 +459,22 @@ def main(args):
                             torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
                             )* uni_mask_
                             )/torch.sum(uni_mask_)
-                    inter_correct_seq_rec = torch.sum(
-                        torch.sum(
-                            torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
-                            torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
-                            )* inter_mask_
-                            )/torch.sum(inter_mask_)
+                    # inter_correct_seq_rec = torch.sum(
+                    #     torch.sum(
+                    #         torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
+                    #         torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
+                    #         )* inter_mask_
+                    #         )/torch.sum(inter_mask_)
                     seq_rec_rate_matrix[i,j] = seq_recovery_rate
                     correct_seq_rec_matrix[i,j] = correct_seq_rec
-                    inter_correct_seq_rec_matrix[i,j] = inter_correct_seq_rec
+                    # inter_correct_seq_rec_matrix[i,j] = inter_correct_seq_rec
                     print("{},{} Sequence Recovery Rate: {}".format(i, j, seq_recovery_rate))
             matrix_file = base_folder + '/{}/seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
             np.save(matrix_file, seq_rec_rate_matrix)
             matrix_file = base_folder + '/{}/uni_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
             np.save(matrix_file, correct_seq_rec_matrix)
-            matrix_file = base_folder + '/{}/inter_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
-            np.save(matrix_file, inter_correct_seq_rec_matrix)
+            # matrix_file = base_folder + '/{}/inter_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
+            # np.save(matrix_file, inter_correct_seq_rec_matrix)
     print("trial ends!")
 
    
