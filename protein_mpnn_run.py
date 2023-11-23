@@ -198,8 +198,8 @@ def main(args):
     if not os.path.exists(base_folder):
         os.makedirs(base_folder)
     
-    if not os.path.exists(base_folder + 'seqs'):
-        os.makedirs(base_folder + 'seqs')
+    if not os.path.exists(base_folder + args.seq_folder_name):
+        os.makedirs(base_folder + args.seq_folder_name)
     
     if args.save_score:
         if not os.path.exists(base_folder + 'scores'):
@@ -231,12 +231,14 @@ def main(args):
     with torch.no_grad():
         test_sum, test_weights = 0., 0.
         S_sample_all_list = []
+        correct_idx_all_list = []
         for ix, protein in enumerate(dataset_valid):
             score_list = []
             global_score_list = []
             all_probs_list = []
             all_log_probs_list = []
             S_sample_list = []
+            correct_idx_list = []
             batch_clones = [copy.deepcopy(protein) for i in range(BATCH_COPIES)]
             X, S, mask, lengths, chain_M, chain_encoding_all, chain_list_list, visible_list_list, masked_list_list, masked_chain_length_list_list, chain_M_pos, omit_AA_mask, residue_idx, dihedral_mask, tied_pos_list_of_lists_list, pssm_coef, pssm_bias, pssm_log_odds_all, bias_by_res_all, tied_beta = tied_featurize(batch_clones, device, chain_id_dict, fixed_positions_dict, omit_AA_dict, tied_positions_dict, pssm_dict, bias_by_res_dict, ca_only=args.ca_only)
             pssm_log_odds_mask = (pssm_log_odds_all > args.pssm_threshold).float() #1.0 for true, 0.0 for false
@@ -319,7 +321,7 @@ def main(args):
                 global_scores = _scores(S, log_probs, mask) #score the whole structure-sequence
                 global_native_score = global_scores.cpu().data.numpy()
                 # Generate some sequences
-                ali_file = base_folder + '/seqs/' + batch_clones[0]['name'] + '.fa'
+                ali_file = base_folder + '/{}/'.format(args.seq_folder_name) + batch_clones[0]['name'] + '.fa'
                 score_file = base_folder + '/scores/' + batch_clones[0]['name'] + '.npz'
                 probs_file = base_folder + '/probs/' + batch_clones[0]['name'] + '.npz'
                 if print_all:
@@ -350,12 +352,15 @@ def main(args):
                             for b_ix in range(BATCH_COPIES):
                                 masked_chain_length_list = masked_chain_length_list_list[b_ix]
                                 masked_list = masked_list_list[b_ix]
-                                seq_recovery_rate = torch.sum(
-                                    torch.sum(
-                                        torch.nn.functional.one_hot(S[b_ix], 21)*
-                                        torch.nn.functional.one_hot(S_sample[b_ix], 21),axis=-1
-                                        )*mask_for_loss[b_ix]
-                                        )/torch.sum(mask_for_loss[b_ix])
+                                comp = torch.sum(
+                                    torch.nn.functional.one_hot(S[b_ix], 21)*torch.nn.functional.one_hot(S_sample[b_ix], 21)
+                                    ,axis=-1
+                                )
+                                seq_recovery_rate = torch.sum(comp * mask_for_loss[b_ix])/torch.sum(mask_for_loss[b_ix])
+                                # correct pos
+                                correct_idx = (comp * mask_for_loss[b_ix])
+                                if BATCH_COPIES == 1:
+                                    correct_idx_list.append(correct_idx)
                                 
                                 seq = _S_to_seq(S_sample[b_ix], chain_M[b_ix])
                                 score = scores[b_ix]
@@ -425,6 +430,7 @@ def main(args):
                 # if len(S_sample_list) == 1:
                 #     S_sample_all_list.append(S_sample[0])
                 S_sample_all_list.extend([torch.from_numpy(s) for s in S_sample_list])
+                correct_idx_all_list.extend(correct_idx_list)
                 t1 = time.time()
                 dt = round(float(t1-t0), 4)
                 num_seqs = len(temperatures)*NUM_BATCHES*BATCH_COPIES
@@ -434,6 +440,8 @@ def main(args):
         if len(S_sample_all_list) > 1:
             assert BATCH_COPIES == 1
             seq_rec_rate_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
+            correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
+            inter_correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
             for i in range(len(S_sample_all_list)):
                 for j in range(len(S_sample_all_list)):
                     seq_recovery_rate = torch.sum(
@@ -443,9 +451,30 @@ def main(args):
                             )*mask_for_loss[0]
                             )/torch.sum(mask_for_loss[0])
                     seq_rec_rate_matrix[i,j] = seq_recovery_rate
+                    uni_mask_ = ((correct_idx_all_list[i] + correct_idx_all_list[j]) > 0)
+                    inter_mask_ = (correct_idx_all_list[i] * correct_idx_all_list[j])
+                    correct_seq_rec = torch.sum(
+                        torch.sum(
+                            torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
+                            torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
+                            )* uni_mask_
+                            )/torch.sum(uni_mask_)
+                    inter_correct_seq_rec = torch.sum(
+                        torch.sum(
+                            torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
+                            torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
+                            )* inter_mask_
+                            )/torch.sum(inter_mask_)
+                    seq_rec_rate_matrix[i,j] = seq_recovery_rate
+                    correct_seq_rec_matrix[i,j] = correct_seq_rec
+                    inter_correct_seq_rec_matrix[i,j] = inter_correct_seq_rec
                     print("{},{} Sequence Recovery Rate: {}".format(i, j, seq_recovery_rate))
-            matrix_file = base_folder + '/seqs/seq_rec_rate_matrix.npy'
+            matrix_file = base_folder + '/{}/seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
             np.save(matrix_file, seq_rec_rate_matrix)
+            matrix_file = base_folder + '/{}/uni_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
+            np.save(matrix_file, correct_seq_rec_matrix)
+            matrix_file = base_folder + '/{}/inter_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
+            np.save(matrix_file, inter_correct_seq_rec_matrix)
     print("trial ends!")
 
    
@@ -498,6 +527,7 @@ if __name__ == "__main__":
     argparser.add_argument("--pssm_bias_flag", type=int, default=0, help="0 for False, 1 for True")
     
     argparser.add_argument("--tied_positions_jsonl", type=str, default='', help="Path to a dictionary with tied positions")
+    argparser.add_argument("--seq_folder_name", type=str, default='seqs')
     
     args = argparser.parse_args()    
     main(args)   

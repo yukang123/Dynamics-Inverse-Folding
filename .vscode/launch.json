@@ -1,0 +1,25 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: 当前文件",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--jsonl_path", "outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs/parsed_pdbs_1.jsonl",
+                "--out_folder", "outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs",
+                "--num_seq_per_target", "2",
+                "--sampling_temp", "0.1",
+                "--seed", "37",
+                "--batch_size", "1",
+                "--seq_folder_name", "seqs_10",
+            ]
+        }
+    ]
+}
