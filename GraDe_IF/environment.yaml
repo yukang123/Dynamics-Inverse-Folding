@@ -280,4 +280,4 @@ dependencies:
     - widgetsnbextension==4.0.7
     - yarl==1.9.2
     - zipp==3.15.0
-prefix: /home/z5174804/miniconda3/envs/protein
+# prefix: /home/z5174804/miniconda3/envs/protein

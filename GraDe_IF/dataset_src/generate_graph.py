@@ -12,7 +12,7 @@ from tqdm import tqdm
 amino_acids_type = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I',
                 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
 
-def get_struc2ndRes(pdb_filename):
+def get_struc2ndRes(pdb_filename, ignore_chains = None):
     struc_2nds_res_alphabet = ['E', 'L', 'I', 'T', 'H', 'B', 'G', 'S']
     char_to_int = dict((c, i) for i, c in enumerate(struc_2nds_res_alphabet))
 
@@ -22,9 +22,9 @@ def get_struc2ndRes(pdb_filename):
     dssp = DSSP(model, pdb_filename, dssp='mkdssp')
 
     # From model, extract the list of amino acids
-    model_residues = [(chain.id, residue.id[1]) for chain in model for residue in chain if residue.id[0] == ' ']
+    model_residues = [(chain.id, residue.id[1]) for chain in model if ignore_chains is not None and chain.id not in ignore_chains for residue in chain if residue.id[0] == ' ']
     # From DSSP, extract the list of amino acids
-    dssp_residues = [(k[0], k[1][1]) for k in dssp.keys()]
+    dssp_residues = [(k[0], k[1][1]) for k in dssp.keys() if ignore_chains is not None and k[0] not in ignore_chains]
 
     # Determine the missing amino acids
     missing_residues = set(model_residues) - set(dssp_residues)
@@ -52,6 +52,7 @@ def get_struc2ndRes(pdb_filename):
     return ss_encoding
 
 def prepare_graph(data):
+    # print(data.keys())
     del data['distances']
     del data['edge_dist']
     mu_r_norm=data.mu_r_norm
@@ -68,7 +69,7 @@ def prepare_graph(data):
     )
     return graph
 
-def pdb2graph(filename,normalize_path = 'dataset_src/mean_attr.pt'):
+def pdb2graph(filename,normalize_path = 'dataset_src/mean_attr.pt', ignore_chains=None):
     #### dataset  ####
     dataset_arg = dataset_argument(n=51)
     dataset = Cath_imem(dataset_arg['root'], dataset_arg['name'], split='test',
@@ -77,10 +78,11 @@ def pdb2graph(filename,normalize_path = 'dataset_src/mean_attr.pt'):
                                 set_length=dataset_arg['set_length'],
                                 struc_2nds_res_path = dataset_arg['struc_2nds_res_path'],
                                 random_sampling=True,diffusion=True)
-    rec, rec_coords, c_alpha_coords, n_coords, c_coords = dataset.get_receptor_inference(filename)
-    struc_2nd_res = get_struc2ndRes(filename)
+    rec, rec_coords, c_alpha_coords, n_coords, c_coords = dataset.get_receptor_inference(filename, ignore_chains=ignore_chains)
+    struc_2nd_res = get_struc2ndRes(filename, ignore_chains=ignore_chains)
     rec_graph = dataset.get_calpha_graph(
                 rec, c_alpha_coords, n_coords, c_coords, rec_coords, struc_2nd_res)
+    print(rec_graph)
     if rec_graph:
         normalize_transform = NormalizeProtein(filename=normalize_path)
         

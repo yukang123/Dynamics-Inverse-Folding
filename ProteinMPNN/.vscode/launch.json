@@ -13,12 +13,14 @@
             "justMyCode": true,
             "args": [
                 "--jsonl_path", "outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs/parsed_pdbs_trial.jsonl",
+                // "--pdb_path", "../../Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion-0000-pdbs/0000.pdb",
                 "--out_folder", "outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs",
                 "--num_seq_per_target", "50",
                 "--sampling_temp", "0.1",
                 "--seed", "37",
                 "--batch_size", "1",
                 "--seq_folder_name", "seqs_2",
+                "--pdb_path_chains", "B",
             ],
             // "args": [
             //     "--input_path", "../Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion-0000-pdbs",

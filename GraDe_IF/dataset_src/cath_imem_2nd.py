@@ -616,7 +616,7 @@ class Cath_imem(InMemoryDataset):
             print('Warning: ' + struc_2nds_res_filename + 'does not exist')
             return None
 
-    def get_receptor_inference(self, rec_path):
+    def get_receptor_inference(self, rec_path, ignore_chains=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=PDBConstructionWarning)
             structure = self.biopython_parser.get_structure(
@@ -629,6 +629,8 @@ class Cath_imem(InMemoryDataset):
         valid_chain_ids = []
         lengths = []
         for i, chain in enumerate(rec):
+            # if chain.get_id() in ignore_chains:
+            #     continue
             chain_coords = []  # num_residues, num_atoms, 3
             chain_c_alpha_coords = []
             chain_n_coords = []
@@ -673,8 +675,11 @@ class Cath_imem(InMemoryDataset):
         valid_c_coords = []
         valid_lengths = []
         invalid_chain_ids = []
+        ignore_chains = [] if ignore_chains is None else ignore_chains
         for i, chain in enumerate(rec):
-            if chain.get_id() in valid_chain_ids:
+            # if chain.get_id() in ignore_chains:
+            #     continue            
+            if chain.get_id() in valid_chain_ids and chain.get_id() not in ignore_chains:
                 valid_coords.append(coords[i])
                 valid_c_alpha_coords.append(c_alpha_coords[i])
                 valid_n_coords.append(n_coords[i])

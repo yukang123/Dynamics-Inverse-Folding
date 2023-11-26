@@ -71,13 +71,13 @@ def parse_PDB_biounits(x, atoms=['N','CA','C'], chain=None):
   
   def AA_to_N(x):
     # ["ARND"] -> [[0,1,2,3]]
-    x = np.array(x);
+    x = np.array(x)
     if x.ndim == 0: x = x[None]
     return [[aa_1_N.get(a, states-1) for a in y] for y in x]
   
   def N_to_AA(x):
     # [[0,1,2,3]] -> ["ARND"]
-    x = np.array(x);
+    x = np.array(x)
     if x.ndim == 1: x = x[None]
     return ["".join([aa_N_1.get(a,"-") for a in y]) for y in x]
 
@@ -108,6 +108,8 @@ def parse_PDB_biounits(x, atoms=['N','CA','C'], chain=None):
             max_resn = resn
         if resn not in xyz: 
             xyz[resn] = {}
+        else:
+            aa = 1
         if resa not in xyz[resn]: 
             xyz[resn][resa] = {}
         if resn not in seq: 

@@ -174,7 +174,13 @@ def main(args):
         chain_id_dict[pdb_dict_list[0]['name']]= (designed_chain_list, fixed_chain_list)
     else:
         dataset_valid = StructureDataset(args.jsonl_path, truncate=None, max_length=args.max_length, verbose=print_all)
-
+        if args.pdb_path_chains:
+            designed_chain_list = [str(item) for item in args.pdb_path_chains.split()]
+            chain_id_dict = {}
+            for i in range(len(dataset_valid)):
+                all_chain_list = [item[-1:] for item in list(dataset_valid[i]) if item[:9]=='seq_chain']
+                fixed_chain_list = [letter for letter in all_chain_list if letter not in designed_chain_list]
+                chain_id_dict[dataset_valid[i]['name']]= (designed_chain_list, fixed_chain_list)            
     checkpoint = torch.load(checkpoint_path, map_location=device) 
     noise_level_print = checkpoint['noise_level']
     model = ProteinMPNN(
@@ -240,7 +246,9 @@ def main(args):
             S_sample_list = []
             correct_idx_list = []
             batch_clones = [copy.deepcopy(protein) for i in range(BATCH_COPIES)]
-            X, S, mask, lengths, chain_M, chain_encoding_all, chain_list_list, visible_list_list, masked_list_list, masked_chain_length_list_list, chain_M_pos, omit_AA_mask, residue_idx, dihedral_mask, tied_pos_list_of_lists_list, pssm_coef, pssm_bias, pssm_log_odds_all, bias_by_res_all, tied_beta = tied_featurize(batch_clones, device, chain_id_dict, fixed_positions_dict, omit_AA_dict, tied_positions_dict, pssm_dict, bias_by_res_dict, ca_only=args.ca_only)
+            X, S, mask, lengths, chain_M, chain_encoding_all, chain_list_list, visible_list_list, masked_list_list, masked_chain_length_list_list, chain_M_pos, omit_AA_mask, residue_idx, dihedral_mask, tied_pos_list_of_lists_list, pssm_coef, pssm_bias, pssm_log_odds_all, bias_by_res_all, tied_beta = tied_featurize(
+                batch_clones, device, chain_id_dict, fixed_positions_dict, omit_AA_dict, tied_positions_dict, pssm_dict, bias_by_res_dict, ca_only=args.ca_only
+                )
             pssm_log_odds_mask = (pssm_log_odds_all > args.pssm_threshold).float() #1.0 for true, 0.0 for false
             name_ = batch_clones[0]['name']
             if args.score_only:
@@ -356,7 +364,9 @@ def main(args):
                                     torch.nn.functional.one_hot(S[b_ix], 21)*torch.nn.functional.one_hot(S_sample[b_ix], 21)
                                     ,axis=-1
                                 )
-                                seq_recovery_rate = torch.sum(comp * mask_for_loss[b_ix])/torch.sum(mask_for_loss[b_ix])
+                                seq_recovery_rate = torch.sum(
+                                    comp * mask_for_loss[b_ix]
+                                    )/torch.sum(mask_for_loss[b_ix])
                                 # correct pos
                                 correct_idx = (comp * mask_for_loss[b_ix])
                                 if BATCH_COPIES == 1:
@@ -452,7 +462,7 @@ def main(args):
                             )/torch.sum(mask_for_loss[0])
                     seq_rec_rate_matrix[i,j] = seq_recovery_rate
                     uni_mask_ = ((correct_idx_all_list[i] + correct_idx_all_list[j]) > 0)
-                    inter_mask_ = (correct_idx_all_list[i] * correct_idx_all_list[j])
+                    # inter_mask_ = (correct_idx_all_list[i] * correct_idx_all_list[j])
                     correct_seq_rec = torch.sum(
                         torch.sum(
                             torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
@@ -473,6 +483,17 @@ def main(args):
             np.save(matrix_file, seq_rec_rate_matrix)
             matrix_file = base_folder + '/{}/uni_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
             np.save(matrix_file, correct_seq_rec_matrix)
+            sample_num = args.num_seq_per_target
+            D = 1 - seq_rec_rate_matrix[:sample_num, sample_num:]
+            import ot 
+            prob1 = prob2 = np.ones(sample_num) / sample_num
+            dis = ot.emd2(prob1, prob2, D)
+            matrix_file = base_folder + '/{}/D.npy'.format(args.seq_folder_name)
+            np.save(matrix_file, D)
+            print(D)
+            print(np.mean(D))
+            print("Wassertein Distance: {}".format(dis))
+            print("trial ends!")
             # matrix_file = base_folder + '/{}/inter_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
             # np.save(matrix_file, inter_correct_seq_rec_matrix)
     print("trial ends!")

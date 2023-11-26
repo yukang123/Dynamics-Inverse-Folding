@@ -1,0 +1,13 @@
+*.fa
+*.npy
+*.jpg
+*.pdb
+*/__pycache__
+*__pycache__*
+.pyc
+*/*/*/*/__pycache__
+*__pycache__*
+*__pycache__/*
+*.__pycache__
+*/__pycache__/
+GraDe_IF/diffusion/model/egnn_pytorch/__pycache__
