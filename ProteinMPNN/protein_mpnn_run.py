@@ -17,7 +17,7 @@ def main(args):
     import random
     import os.path
     import subprocess
-    
+    import ot 
     from protein_mpnn_utils import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB, parse_fasta
     from protein_mpnn_utils import StructureDataset, StructureDatasetPDB, ProteinMPNN
 
@@ -66,6 +66,7 @@ def main(args):
     print_all = args.suppress_print == 0 
     omit_AAs_np = np.array([AA in omit_AAs_list for AA in alphabet]).astype(np.float32)
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    print(device)
     if os.path.isfile(args.chain_id_jsonl):
         with open(args.chain_id_jsonl, 'r') as json_file:
             json_list = list(json_file)
@@ -238,6 +239,8 @@ def main(args):
         test_sum, test_weights = 0., 0.
         S_sample_all_list = []
         correct_idx_all_list = []
+        S_sample_all_list_1 = []
+        correct_idx_all_list_1 = []
         for ix, protein in enumerate(dataset_valid):
             score_list = []
             global_score_list = []
@@ -245,6 +248,7 @@ def main(args):
             all_log_probs_list = []
             S_sample_list = []
             correct_idx_list = []
+            seq_rec_list = []
             batch_clones = [copy.deepcopy(protein) for i in range(BATCH_COPIES)]
             X, S, mask, lengths, chain_M, chain_encoding_all, chain_list_list, visible_list_list, masked_list_list, masked_chain_length_list_list, chain_M_pos, omit_AA_mask, residue_idx, dihedral_mask, tied_pos_list_of_lists_list, pssm_coef, pssm_bias, pssm_log_odds_all, bias_by_res_all, tied_beta = tied_featurize(
                 batch_clones, device, chain_id_dict, fixed_positions_dict, omit_AA_dict, tied_positions_dict, pssm_dict, bias_by_res_dict, ca_only=args.ca_only
@@ -377,6 +381,7 @@ def main(args):
                                 score_list.append(score)
                                 global_score = global_scores[b_ix]
                                 global_score_list.append(global_score)
+                                seq_rec_list.append(seq_recovery_rate)
                                 native_seq = _S_to_seq(S[b_ix], chain_M[b_ix])
                                 if b_ix == 0 and j==0 and temp==temperatures[0]:
                                     start = 0
@@ -430,6 +435,8 @@ def main(args):
                                 sample_number = j*BATCH_COPIES+b_ix+1
                                 f.write('>T={}, sample={}, score={}, global_score={}, seq_recovery={}\n{}\n'.format(
                                     temp,sample_number,score_print,global_score_print,seq_rec_print,seq)) #write generated sequence
+                    print("mean recovery rate: {}".format(np.mean(seq_rec_list)))
+                    f.write("mean recovery rate: {:.4f}\n".format(np.mean(seq_rec_list)))
                 if args.save_score:
                     np.savez(score_file, score=np.array(score_list, np.float32), global_score=np.array(global_score_list, np.float32))
                 if args.save_probs:
@@ -441,59 +448,88 @@ def main(args):
                 #     S_sample_all_list.append(S_sample[0])
                 S_sample_all_list.extend([torch.from_numpy(s) for s in S_sample_list])
                 correct_idx_all_list.extend(correct_idx_list)
+
+                S_sample_all_list_1.append([torch.from_numpy(s) for s in S_sample_list])
+                correct_idx_all_list_1.append(correct_idx_list)
+
                 t1 = time.time()
                 dt = round(float(t1-t0), 4)
                 num_seqs = len(temperatures)*NUM_BATCHES*BATCH_COPIES
                 total_length = X.shape[1]
                 if print_all:
                     print(f'{num_seqs} sequences of length {total_length} generated in {dt} seconds')
+
         if len(S_sample_all_list) > 1:
             assert BATCH_COPIES == 1
-            seq_rec_rate_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
-            correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
-            # inter_correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
-            for i in range(len(S_sample_all_list)):
-                for j in range(len(S_sample_all_list)):
-                    seq_recovery_rate = torch.sum(
-                        torch.sum(
-                            torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
-                            torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
-                            )*mask_for_loss[0]
-                            )/torch.sum(mask_for_loss[0])
-                    seq_rec_rate_matrix[i,j] = seq_recovery_rate
-                    uni_mask_ = ((correct_idx_all_list[i] + correct_idx_all_list[j]) > 0)
-                    # inter_mask_ = (correct_idx_all_list[i] * correct_idx_all_list[j])
-                    correct_seq_rec = torch.sum(
-                        torch.sum(
-                            torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
-                            torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
-                            )* uni_mask_
-                            )/torch.sum(uni_mask_)
-                    # inter_correct_seq_rec = torch.sum(
-                    #     torch.sum(
-                    #         torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
-                    #         torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
-                    #         )* inter_mask_
-                    #         )/torch.sum(inter_mask_)
-                    seq_rec_rate_matrix[i,j] = seq_recovery_rate
-                    correct_seq_rec_matrix[i,j] = correct_seq_rec
-                    # inter_correct_seq_rec_matrix[i,j] = inter_correct_seq_rec
-                    print("{},{} Sequence Recovery Rate: {}".format(i, j, seq_recovery_rate))
-            matrix_file = base_folder + '/{}/seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
-            np.save(matrix_file, seq_rec_rate_matrix)
-            matrix_file = base_folder + '/{}/uni_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
-            np.save(matrix_file, correct_seq_rec_matrix)
+            # seq_rec_rate_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
+            # correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
+            # # inter_correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
+            # for i in range(len(S_sample_all_list)):
+            #     for j in range(len(S_sample_all_list)):
+            #         seq_recovery_rate = torch.sum(
+            #             torch.sum(
+            #                 torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
+            #                 torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
+            #                 )*mask_for_loss[0]
+            #                 )/torch.sum(mask_for_loss[0])
+            #         seq_rec_rate_matrix[i,j] = seq_recovery_rate
+            #         uni_mask_ = ((correct_idx_all_list[i] + correct_idx_all_list[j]) > 0)
+            #         # inter_mask_ = (correct_idx_all_list[i] * correct_idx_all_list[j])
+            #         correct_seq_rec = torch.sum(
+            #             torch.sum(
+            #                 torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
+            #                 torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
+            #                 )* uni_mask_
+            #                 )/torch.sum(uni_mask_)
+            #         # inter_correct_seq_rec = torch.sum(
+            #         #     torch.sum(
+            #         #         torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
+            #         #         torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
+            #         #         )* inter_mask_
+            #         #         )/torch.sum(inter_mask_)
+            #         seq_rec_rate_matrix[i,j] = seq_recovery_rate
+            #         correct_seq_rec_matrix[i,j] = correct_seq_rec
+            #         # inter_correct_seq_rec_matrix[i,j] = inter_correct_seq_rec
+            #         print("{},{} Sequence Recovery Rate: {}".format(i, j, seq_recovery_rate))
+            # matrix_file = base_folder + '/{}/seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
+            # np.save(matrix_file, seq_rec_rate_matrix)
+            # matrix_file = base_folder + '/{}/uni_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
+            # np.save(matrix_file, correct_seq_rec_matrix)
             sample_num = args.num_seq_per_target
-            D = 1 - seq_rec_rate_matrix[:sample_num, sample_num:]
-            import ot 
-            prob1 = prob2 = np.ones(sample_num) / sample_num
-            dis = ot.emd2(prob1, prob2, D)
-            matrix_file = base_folder + '/{}/D.npy'.format(args.seq_folder_name)
-            np.save(matrix_file, D)
-            print(D)
-            print(np.mean(D))
-            print("Wassertein Distance: {}".format(dis))
-            print("trial ends!")
+            target_num = len(dataset_valid)
+            was_dis_matrix = np.zeros((target_num, target_num))
+            for i in range(target_num):
+                for j in range(target_num):
+                    S_samples_i = S_sample_all_list_1[i]
+                    S_samples_j = S_sample_all_list_1[j]
+                    correct_idxs_i = correct_idx_all_list_1[i]
+                    correct_idxs_j = correct_idx_all_list_1[j]
+                    seq_rec_rate_matrix =  np.zeros((sample_num, sample_num))
+                    correct_seq_rec_matrix =  np.zeros((sample_num, sample_num))
+                    for k in range(sample_num):
+                        for l in range(sample_num):
+                            seq_recovery_rate = torch.sum(
+                                torch.sum(
+                                    torch.nn.functional.one_hot(S_samples_i[k], 21)*
+                                    torch.nn.functional.one_hot(S_samples_j[l], 21),axis=-1
+                                    )*mask_for_loss[0]
+                                    )/torch.sum(mask_for_loss[0])
+                            seq_rec_rate_matrix[k,l] = seq_recovery_rate
+                            uni_mask_ = ((correct_idxs_i[k] + correct_idxs_j[l]) > 0)
+                            correct_seq_rec = torch.sum(
+                                torch.sum(
+                                    torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
+                                    torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
+                                    )* uni_mask_
+                                    )/torch.sum(uni_mask_)
+                            correct_seq_rec_matrix[k,l] = correct_seq_rec                
+                    D = 1 - seq_rec_rate_matrix
+                    prob1 = prob2 = np.ones(sample_num) / sample_num
+                    dis = ot.emd2(prob1, prob2, D)
+                    # print(D)
+                    # print(np.mean(D))
+                    was_dis_matrix[i, j] = dis
+                    print("Wassertein Distance: {}".format(dis))
             # matrix_file = base_folder + '/{}/inter_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
             # np.save(matrix_file, inter_correct_seq_rec_matrix)
     print("trial ends!")

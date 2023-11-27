@@ -19,8 +19,8 @@ def get_struc2ndRes(pdb_filename, ignore_chains = None):
     p = PDBParser()
     structure = p.get_structure('random_id', pdb_filename)
     model = structure[0]
-    dssp = DSSP(model, pdb_filename, dssp='mkdssp')
-
+    # dssp = DSSP(model, pdb_filename, dssp='mkdssp')
+    dssp = DSSP(model, pdb_filename, dssp='/scratch/network/yy1325/Dynamics-Inverse-Folding/mkdssp')
     # From model, extract the list of amino acids
     model_residues = [(chain.id, residue.id[1]) for chain in model if ignore_chains is not None and chain.id not in ignore_chains for residue in chain if residue.id[0] == ' ']
     # From DSSP, extract the list of amino acids
@@ -68,6 +68,7 @@ def prepare_graph(data):
         sasa = data.x[:,20]
     )
     return graph
+
 
 def pdb2graph(filename,normalize_path = 'dataset_src/mean_attr.pt', ignore_chains=None):
     #### dataset  ####
