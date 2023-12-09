@@ -9,7 +9,7 @@ def main(args):
     folder_with_pdbs_path = args.input_path
     save_path = args.output_path
     ca_only = args.ca_only
-    
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
     alpha_1 = list("ARNDCQEGHILKMFPSTWYV-")
     states = len(alpha_1)
     alpha_3 = ['ALA','ARG','ASN','ASP','CYS','GLN','GLU','GLY','HIS','ILE',

@@ -2,8 +2,8 @@ import mdtraj as md
 import os
 import numpy as np
 from tqdm import tqdm
-data_folder = "../Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion"
-traj_name = "sarscov2-15235449-peptide-A-no-water-no-ion-0000.dcd"
+data_folder = "/Users/mac/Desktop/Inverse Folding/Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion"
+traj_name = "sarscov2-15235449-peptide-A-no-water-no-ion-0001.dcd"
 traj_file = os.path.join(data_folder, traj_name)
 pdb_file = os.path.join(data_folder, "DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion.pdb")
 traj = md.load(traj_file, top=pdb_file)

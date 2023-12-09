@@ -22,9 +22,9 @@ def get_struc2ndRes(pdb_filename, ignore_chains = None):
     dssp = DSSP(model, pdb_filename, dssp='mkdssp')
 
     # From model, extract the list of amino acids
-    model_residues = [(chain.id, residue.id[1]) for chain in model if ignore_chains is not None and chain.id not in ignore_chains for residue in chain if residue.id[0] == ' ']
+    model_residues = [(chain.id, residue.id[1]) for chain in model if (ignore_chains is not None and chain.id not in ignore_chains) or ignore_chains is None for residue in chain if residue.id[0] == ' ']
     # From DSSP, extract the list of amino acids
-    dssp_residues = [(k[0], k[1][1]) for k in dssp.keys() if ignore_chains is not None and k[0] not in ignore_chains]
+    dssp_residues = [(k[0], k[1][1]) for k in dssp.keys() if (ignore_chains is not None and k[0] not in ignore_chains) or ignore_chains is None]
 
     # Determine the missing amino acids
     missing_residues = set(model_residues) - set(dssp_residues)

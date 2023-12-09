@@ -164,6 +164,11 @@ def main(args):
     if args.pdb_path:
         pdb_dict_list = parse_PDB(args.pdb_path, ca_only=args.ca_only)
         dataset_valid = StructureDatasetPDB(pdb_dict_list, truncate=None, max_length=args.max_length)
+
+        # pdb_path_1 = "../../Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion-0000-pdbs/0000.pdb"
+        # pdb_path_1 = "/Users/mac/Desktop/Inverse Folding/Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-structure/system.pdb"
+        # pdb_dict_list_1 = parse_PDB(pdb_path_1, ca_only=args.ca_only)
+        # dataset_valid_1 = StructureDatasetPDB(pdb_dict_list_1, truncate=None, max_length=args.max_length)
         all_chain_list = [item[-1:] for item in list(pdb_dict_list[0]) if item[:9]=='seq_chain'] #['A','B', 'C',...]
         if args.pdb_path_chains:
             designed_chain_list = [str(item) for item in args.pdb_path_chains.split()]
@@ -324,6 +329,9 @@ def main(args):
                 randn_1 = torch.randn(chain_M.shape, device=X.device)
                 log_probs = model(X, S, mask, chain_M*chain_M_pos, residue_idx, chain_encoding_all, randn_1)
                 mask_for_loss = mask*chain_M*chain_M_pos
+                seg_index = np.zeros(len(mask_for_loss[0]))
+                seg_index[81:81+784] = 1
+                mask_for_loss = mask_for_loss * seg_index
                 scores = _scores(S, log_probs, mask_for_loss) #score only the redesigned part
                 native_score = scores.cpu().data.numpy()
                 global_scores = _scores(S, log_probs, mask) #score the whole structure-sequence
@@ -347,7 +355,7 @@ def main(args):
                             # Compute scores
                                 S_sample = sample_dict["S"]
                             log_probs = model(X, S_sample, mask, chain_M*chain_M_pos, residue_idx, chain_encoding_all, randn_2, use_input_decoding_order=True, decoding_order=sample_dict["decoding_order"])
-                            mask_for_loss = mask*chain_M*chain_M_pos
+                            # mask_for_loss = mask*chain_M*chain_M_poss
                             scores = _scores(S_sample, log_probs, mask_for_loss)
                             scores = scores.cpu().data.numpy()
                             
