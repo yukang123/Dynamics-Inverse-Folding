@@ -82,6 +82,11 @@ def sample_sequence(pdb_path, ali_folder, ignore_chains = ["A"], sample_num=1, s
             sample_graphs.append(sample_graph)
             sample_probs.append(prob)
             recovery_list.append(recovery)
+        sample_probs_tensor = torch.cat(sample_probs)
+        all_seqs = torch.cat([input_graph.x]*sample_num)
+        ll_fullseq = F.cross_entropy(sample_probs_tensor, all_seqs, reduction='mean').item()
+        print("score: {}".format(ll_fullseq))
+        f.write("score: {}\n".format(ll_fullseq))
         print("mean recovery rate:", np.mean(recovery_list))
         f.write(
             "mean recovery rate: {}\n".format(np.mean(recovery_list))
@@ -97,7 +102,7 @@ pdb_folder = "../../../data/sarscov2-15235449-peptide-A-no-water-no-ion-0000-pdb
 pdb_max_idx = 10
 sample_num = 50
 step_interval = 50 #100
-save_folder = "../output/{}_{}".format(pdb_max_idx, sample_num)
+save_folder = "../output_1/{}_{}".format(pdb_max_idx, sample_num)
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
 ali_folder = os.path.join(save_folder, "step_interval_{}".format(step_interval))
@@ -123,6 +128,7 @@ for i in range(pdb_max_idx):
 #         recovery_rate_matrix[i, j] = recovery
 # np.save(os.path.join(ali_folder, "cmp.npy"), recovery_rate_matrix)
 was_dis_matrix = np.zeros((pdb_max_idx, pdb_max_idx))
+mean_rec_matrix = np.zeros((pdb_max_idx, pdb_max_idx))
 for i in range(pdb_max_idx):
     for j in range(i, pdb_max_idx):
         sample_graph_i = sample_graphs_list[i]
@@ -140,9 +146,14 @@ for i in range(pdb_max_idx):
         # np.save(os.path.join(ali_folder, "D.npy"), D)
         print(D)
         print(np.mean(D))
+        mean_rec_matrix[i, j] = np.mean(recovery_rate_matrix)
         print("Wassertein Distance: {}".format(dis))
         was_dis_matrix[i, j] = dis
 was_dis_matrix =  was_dis_matrix.T + was_dis_matrix - np.diag(np.diag(was_dis_matrix))
 print(was_dis_matrix)
 np.save(save_folder + "/was_dis_mat.npy", was_dis_matrix)
+
+mean_rec_matrix =  mean_rec_matrix.T + mean_rec_matrix - np.diag(np.diag(mean_rec_matrix))
+print(mean_rec_matrix)
+np.save(save_folder + "/mean_rec_mat.npy", mean_rec_matrix)
 print("trial ends!")
