@@ -33,3 +33,4 @@
         }
     ]
 }
+// python protein_mpnn_run.py --jsonl_path outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs/parsed_pdbs_10.jsonl --out_folder outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs --num_seq_per_target 50 --sampling_temp 0.1 --seed 37 --batch_size 1 --seq_folder_name seqs_10 --pdb_path_chains B
