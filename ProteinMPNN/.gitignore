@@ -1,3 +1,7 @@
 *.fa
 *.npy
 *.jpg
+*.png
+*.pyc*
+*.mpg
+*.DS_Store
