@@ -338,7 +338,7 @@ def main(args):
                 # for crystal
                 seg_index = torch.zeros(len(mask_for_loss[0])).to(mask_for_loss.device)
                 seg_index[81:81+784] = 1
-                mask_for_loss = mask_for_loss * seg_index
+                # mask_for_loss = mask_for_loss * seg_index
                 scores = _scores(S, log_probs, mask_for_loss) #score only the redesigned part
                 native_score = scores.cpu().data.numpy()
                 global_scores = _scores(S, log_probs, mask) #score the whole structure-sequence
@@ -400,8 +400,8 @@ def main(args):
                                     list_of_AAs = []
                                     for mask_l in masked_chain_length_list:
                                         end += mask_l
-                                        # list_of_AAs.append(native_seq[start:end])
-                                        list_of_AAs.append(native_seq[81:81+784])
+                                        list_of_AAs.append(native_seq[start:end])
+                                        # list_of_AAs.append(native_seq[81:81+784])
                                         start = end
                                     native_seq = "".join(list(np.array(list_of_AAs)[np.argsort(masked_list)]))
                                     l0 = 0
@@ -433,8 +433,8 @@ def main(args):
                                 assert len(masked_chain_length_list) == 1
                                 for mask_l in masked_chain_length_list:
                                     end += mask_l
-                                    # list_of_AAs.append(seq[start:end])
-                                    list_of_AAs.append(seq[81:81+784])
+                                    list_of_AAs.append(seq[start:end])
+                                    # list_of_AAs.append(seq[81:81+784])
                                     start = end
     
                                 seq = "".join(list(np.array(list_of_AAs)[np.argsort(masked_list)]))
@@ -535,7 +535,7 @@ def main(args):
                             correct_seq_rec = torch.sum(
                                 torch.sum(
                                     torch.nn.functional.one_hot(S_samples_i[k], 21)*
-                                    torch.nn.functional.one_hot(S_samples_i[l], 21),axis=-1
+                                    torch.nn.functional.one_hot(S_samples_j[l], 21),axis=-1
                                     )* uni_mask_
                                     )/torch.sum(uni_mask_)
                             correct_seq_rec_matrix[k,l] = correct_seq_rec.item()                
