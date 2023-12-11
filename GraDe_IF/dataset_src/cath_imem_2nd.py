@@ -675,7 +675,7 @@ class Cath_imem(InMemoryDataset):
         valid_c_coords = []
         valid_lengths = []
         invalid_chain_ids = []
-        ignore_chains = [] if ignore_chains is None else ignore_chains
+        # ignore_chains = [] if ignore_chains is None else ignore_chains
         for i, chain in enumerate(rec):
             # if chain.get_id() in ignore_chains:
             #     continue            

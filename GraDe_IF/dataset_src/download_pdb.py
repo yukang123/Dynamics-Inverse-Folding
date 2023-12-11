@@ -12,7 +12,7 @@ from Bio.PDB import PDBParser, PDBIO,Select
 with open('chain_set_splits.json', 'r') as f:
   data = json.load(f)
 
-
+os.makedirs("all", exist_ok=True)
 exits_file = os.listdir('all/')
 for key in data.keys():
     for pdb_code in data[key]:

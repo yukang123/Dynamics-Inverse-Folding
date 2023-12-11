@@ -20,6 +20,7 @@ def main(args):
     import ot 
     from protein_mpnn_utils import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB, parse_fasta
     from protein_mpnn_utils import StructureDataset, StructureDatasetPDB, ProteinMPNN
+    from tqdm import tqdm
 
     if args.seed:
         seed=args.seed
@@ -246,6 +247,7 @@ def main(args):
         correct_idx_all_list = []
         S_sample_all_list_1 = []
         correct_idx_all_list_1 = []
+        perplexity_all_list = []
         for ix, protein in enumerate(dataset_valid):
             score_list = []
             global_score_list = []
@@ -333,7 +335,8 @@ def main(args):
                 randn_1 = torch.randn(chain_M.shape, device=X.device)
                 log_probs = model(X, S, mask, chain_M*chain_M_pos, residue_idx, chain_encoding_all, randn_1)
                 mask_for_loss = mask*chain_M*chain_M_pos
-                seg_index = np.zeros(len(mask_for_loss[0]))
+                # for crystal
+                seg_index = torch.zeros(len(mask_for_loss[0])).to(mask_for_loss.device)
                 seg_index[81:81+784] = 1
                 mask_for_loss = mask_for_loss * seg_index
                 scores = _scores(S, log_probs, mask_for_loss) #score only the redesigned part
@@ -359,7 +362,7 @@ def main(args):
                             # Compute scores
                                 S_sample = sample_dict["S"]
                             log_probs = model(X, S_sample, mask, chain_M*chain_M_pos, residue_idx, chain_encoding_all, randn_2, use_input_decoding_order=True, decoding_order=sample_dict["decoding_order"])
-                            # mask_for_loss = mask*chain_M*chain_M_poss
+                            # mask_for_loss = mask*chain_M*chain_M_pos
                             scores = _scores(S_sample, log_probs, mask_for_loss)
                             scores = scores.cpu().data.numpy()
                             
@@ -381,15 +384,15 @@ def main(args):
                                     )/torch.sum(mask_for_loss[b_ix])
                                 # correct pos
                                 correct_idx = (comp * mask_for_loss[b_ix])
-                                if BATCH_COPIES == 1:
-                                    correct_idx_list.append(correct_idx)
+                                # if BATCH_COPIES == 1:
+                                correct_idx_list.append(correct_idx)
                                 
                                 seq = _S_to_seq(S_sample[b_ix], chain_M[b_ix])
                                 score = scores[b_ix]
                                 score_list.append(score)
                                 global_score = global_scores[b_ix]
                                 global_score_list.append(global_score)
-                                seq_rec_list.append(seq_recovery_rate)
+                                seq_rec_list.append(seq_recovery_rate.cpu().item())
                                 native_seq = _S_to_seq(S[b_ix], chain_M[b_ix])
                                 if b_ix == 0 and j==0 and temp==temperatures[0]:
                                     start = 0
@@ -397,7 +400,8 @@ def main(args):
                                     list_of_AAs = []
                                     for mask_l in masked_chain_length_list:
                                         end += mask_l
-                                        list_of_AAs.append(native_seq[start:end])
+                                        # list_of_AAs.append(native_seq[start:end])
+                                        list_of_AAs.append(native_seq[81:81+784])
                                         start = end
                                     native_seq = "".join(list(np.array(list_of_AAs)[np.argsort(masked_list)]))
                                     l0 = 0
@@ -426,9 +430,11 @@ def main(args):
                                 start = 0
                                 end = 0
                                 list_of_AAs = []
+                                assert len(masked_chain_length_list) == 1
                                 for mask_l in masked_chain_length_list:
                                     end += mask_l
-                                    list_of_AAs.append(seq[start:end])
+                                    # list_of_AAs.append(seq[start:end])
+                                    list_of_AAs.append(seq[81:81+784])
                                     start = end
     
                                 seq = "".join(list(np.array(list_of_AAs)[np.argsort(masked_list)]))
@@ -454,10 +460,11 @@ def main(args):
                     np.savez(probs_file, probs=np.array(all_probs_concat, np.float32), log_probs=np.array(all_log_probs_concat, np.float32), S=np.array(S_sample_concat, np.int32), mask=mask_for_loss.cpu().data.numpy(), chain_order=chain_list_list)
                 # if len(S_sample_list) == 1:
                 #     S_sample_all_list.append(S_sample[0])
-                S_sample_all_list.extend([torch.from_numpy(s) for s in S_sample_list])
-                correct_idx_all_list.extend(correct_idx_list)
+                # S_sample_all_list.extend([torch.from_numpy(s).to(device) for s in S_sample_list])
+                # correct_idx_all_list.extend(correct_idx_list)
 
-                S_sample_all_list_1.append([torch.from_numpy(s) for s in S_sample_list])
+                # S_sample_all_list_1.append([torch.from_numpy(s).to(device) for s in S_sample_list])
+                S_sample_all_list_1.append(torch.from_numpy(np.concatenate(S_sample_list)).to(device))
                 correct_idx_all_list_1.append(correct_idx_list)
 
                 t1 = time.time()
@@ -467,8 +474,8 @@ def main(args):
                 if print_all:
                     print(f'{num_seqs} sequences of length {total_length} generated in {dt} seconds')
 
-        if len(S_sample_all_list) > 1:
-            assert BATCH_COPIES == 1
+        if len(S_sample_all_list_1) > 1:
+            # assert BATCH_COPIES == 1
             # seq_rec_rate_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
             # correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
             # # inter_correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
@@ -506,10 +513,11 @@ def main(args):
             sample_num = args.num_seq_per_target
             target_num = len(dataset_valid)
             was_dis_matrix = np.zeros((target_num, target_num))
+            mean_rec_matrix = np.zeros((target_num, target_num))
             for i in range(target_num):
                 for j in range(target_num):
-                    S_samples_i = S_sample_all_list_1[i]
-                    S_samples_j = S_sample_all_list_1[j]
+                    S_samples_i = S_sample_all_list_1[i] #.to(device)
+                    S_samples_j = S_sample_all_list_1[j] #.to(device)
                     correct_idxs_i = correct_idx_all_list_1[i]
                     correct_idxs_j = correct_idx_all_list_1[j]
                     seq_rec_rate_matrix =  np.zeros((sample_num, sample_num))
@@ -522,24 +530,30 @@ def main(args):
                                     torch.nn.functional.one_hot(S_samples_j[l], 21),axis=-1
                                     )*mask_for_loss[0]
                                     )/torch.sum(mask_for_loss[0])
-                            seq_rec_rate_matrix[k,l] = seq_recovery_rate
+                            seq_rec_rate_matrix[k,l] = seq_recovery_rate.item()
                             uni_mask_ = ((correct_idxs_i[k] + correct_idxs_j[l]) > 0)
                             correct_seq_rec = torch.sum(
                                 torch.sum(
-                                    torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
-                                    torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
+                                    torch.nn.functional.one_hot(S_samples_i[k], 21)*
+                                    torch.nn.functional.one_hot(S_samples_i[l], 21),axis=-1
                                     )* uni_mask_
                                     )/torch.sum(uni_mask_)
-                            correct_seq_rec_matrix[k,l] = correct_seq_rec                
+                            correct_seq_rec_matrix[k,l] = correct_seq_rec.item()                
                     D = 1 - seq_rec_rate_matrix
                     prob1 = prob2 = np.ones(sample_num) / sample_num
                     dis = ot.emd2(prob1, prob2, D)
                     # print(D)
                     # print(np.mean(D))
                     was_dis_matrix[i, j] = dis
+                    mean_rec_matrix[i, j] = np.mean(seq_rec_rate_matrix)
                     print("Wassertein Distance: {}".format(dis))
+                    print("mean recovery rate: {}".format(mean_rec_matrix[i,j]))
             # matrix_file = base_folder + '/{}/inter_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
             # np.save(matrix_file, inter_correct_seq_rec_matrix)
+            print(was_dis_matrix)
+            np.save(base_folder + "/{}/was_dis_mat.npy".format(args.seq_folder_name), was_dis_matrix)
+            print(mean_rec_matrix)
+            np.save(base_folder + "/{}/mean_rec_mat.npy".format(args.seq_folder_name), mean_rec_matrix) 
     print("trial ends!")
 
    

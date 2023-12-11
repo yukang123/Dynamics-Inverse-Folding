@@ -471,7 +471,7 @@ def seq_recovery(data,pred_seq):
     return recovery,ind.cpu()
 
 
-class Trianer(object):
+class Trainer(object):
     def __init__(
         self,
         config,
@@ -738,7 +738,7 @@ if __name__ == "__main__" :
 
     model = EGNN_NET(input_feat_dim=input_feat_dim,hidden_channels=config['hidden_dim'],edge_attr_dim=edge_attr_dim,dropout=config['drop_out'],n_layers=config['depth'],update_edge = config['updeate_edge'],embedding=config['embedding'],embedding_dim=config['embedding_dim'],norm_feat=config['norm_feat'],embed_ss=config['embed_ss'])
     diffusion_model = GraDe_IF(model,timesteps=config['timesteps'],objective=config['objective'],config=config)
-    trainer  = Trianer(config,
+    trainer  = Trainer(config,
                         diffusion_model,
                         train_dataset, 
                         val_dataset,
