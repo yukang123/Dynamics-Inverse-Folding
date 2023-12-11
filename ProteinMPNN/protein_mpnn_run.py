@@ -336,7 +336,7 @@ def main(args):
                 log_probs = model(X, S, mask, chain_M*chain_M_pos, residue_idx, chain_encoding_all, randn_1)
                 mask_for_loss = mask*chain_M*chain_M_pos
                 # for crystal
-                seg_index = np.zeros(len(mask_for_loss[0]))
+                seg_index = torch.zeros(len(mask_for_loss[0])).to(mask_for_loss.device)
                 seg_index[81:81+784] = 1
                 mask_for_loss = mask_for_loss * seg_index
                 scores = _scores(S, log_probs, mask_for_loss) #score only the redesigned part
@@ -362,7 +362,7 @@ def main(args):
                             # Compute scores
                                 S_sample = sample_dict["S"]
                             log_probs = model(X, S_sample, mask, chain_M*chain_M_pos, residue_idx, chain_encoding_all, randn_2, use_input_decoding_order=True, decoding_order=sample_dict["decoding_order"])
-                            mask_for_loss = mask*chain_M*chain_M_pos
+                            # mask_for_loss = mask*chain_M*chain_M_pos
                             scores = _scores(S_sample, log_probs, mask_for_loss)
                             scores = scores.cpu().data.numpy()
                             
@@ -400,7 +400,8 @@ def main(args):
                                     list_of_AAs = []
                                     for mask_l in masked_chain_length_list:
                                         end += mask_l
-                                        list_of_AAs.append(native_seq[start:end])
+                                        # list_of_AAs.append(native_seq[start:end])
+                                        list_of_AAs.append(native_seq[81:81+784])
                                         start = end
                                     native_seq = "".join(list(np.array(list_of_AAs)[np.argsort(masked_list)]))
                                     l0 = 0
@@ -429,9 +430,11 @@ def main(args):
                                 start = 0
                                 end = 0
                                 list_of_AAs = []
+                                assert len(masked_chain_length_list) == 1
                                 for mask_l in masked_chain_length_list:
                                     end += mask_l
-                                    list_of_AAs.append(seq[start:end])
+                                    # list_of_AAs.append(seq[start:end])
+                                    list_of_AAs.append(seq[81:81+784])
                                     start = end
     
                                 seq = "".join(list(np.array(list_of_AAs)[np.argsort(masked_list)]))

@@ -11,16 +11,22 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
+            // "linux": {
+            //     // "server": "/usr/bin/gdbserver",
+            //     "host": "172.28.61.131",
+            //     "port": 2345
+            // },
+            // "miDebuggerServerAddress": "172.28.61.131:22",
             "args": [
                 // "--jsonl_path", "outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs/parsed_pdbs_trial.jsonl",
                 // "--pdb_path", "/Users/mac/Desktop/Inverse Folding/Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-structure/system.pdb",
                 // "--pdb_path", "../../Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion-0000-pdbs/0000.pdb",
                 "--out_folder", "outputs/6m71",
-                "--pdb_path", "/Users/mac/Downloads/6M71.pdb",
-                "--num_seq_per_target", "50", //"50",
+                "--pdb_path", "/scratch/network/yy1325/data/6m71.pdb",
+                "--num_seq_per_target", "5", //"50",
                 "--sampling_temp", "0.1",
                 "--seed", "37",
-                "--batch_size", "50", //"1",
+                "--batch_size", "5", //"1",
                 "--seq_folder_name", "seqs",
                 "--pdb_path_chains", "A",
             ],
@@ -34,3 +40,4 @@
     ]
 }
 // python protein_mpnn_run.py --jsonl_path outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs/parsed_pdbs_10.jsonl --out_folder outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs --num_seq_per_target 50 --sampling_temp 0.1 --seed 37 --batch_size 1 --seq_folder_name seqs_10 --pdb_path_chains B
+// python protein_mpnn_run.py --out_folder outputs/6m71 --pdb_path /scratch/network/yy1325/data/6m71.pdb --num_seq_per_target 50 --sampling_temp 0.1 --seed 37 --batch_size 50 --seq_folder_name seqs --pdb_path_chains A

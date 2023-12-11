@@ -20,11 +20,13 @@ def get_struc2ndRes(pdb_filename, ignore_chains = None):
     structure = p.get_structure('random_id', pdb_filename)
     model = structure[0]
     # dssp = DSSP(model, pdb_filename, dssp='mkdssp')
-    dssp = DSSP(model, pdb_filename, dssp='/scratch/network/yy1325/Dynamics-Inverse-Folding/mkdssp')
+    dssp = DSSP(model, pdb_filename, dssp='../../mkdssp')
     # From model, extract the list of amino acids
-    model_residues = [(chain.id, residue.id[1]) for chain in model if (ignore_chains is not None and chain.id not in ignore_chains) or ignore_chains is None for residue in chain if residue.id[0] == ' ']
+    # model_residues = [(chain.id, residue.id[1]) for chain in model if (ignore_chains is not None and chain.id not in ignore_chains) or ignore_chains is None for residue in chain if residue.id[0] == ' ']
+    model_residues = [(chain.id, residue.id[1]) for chain in model if (chain.id not in ignore_chains) for residue in chain if residue.id[0] == ' ']
     # From DSSP, extract the list of amino acids
-    dssp_residues = [(k[0], k[1][1]) for k in dssp.keys() if (ignore_chains is not None and k[0] not in ignore_chains) or ignore_chains is None]
+    # dssp_residues = [(k[0], k[1][1]) for k in dssp.keys() if (ignore_chains is not None and k[0] not in ignore_chains) or ignore_chains is None]
+    dssp_residues = [(k[0], k[1][1]) for k in dssp.keys() if (k[0] not in ignore_chains)]
 
     # Determine the missing amino acids
     missing_residues = set(model_residues) - set(dssp_residues)
@@ -70,7 +72,7 @@ def prepare_graph(data):
     return graph
 
 
-def pdb2graph(filename,normalize_path = 'dataset_src/mean_attr.pt', ignore_chains=None):
+def pdb2graph(filename,normalize_path = 'dataset_src/mean_attr.pt', ignore_chains=[]):
     #### dataset  ####
     dataset_arg = dataset_argument(n=51)
     dataset = Cath_imem(dataset_arg['root'], dataset_arg['name'], split='test',
