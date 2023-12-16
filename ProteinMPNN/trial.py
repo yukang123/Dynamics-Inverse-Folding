@@ -15,6 +15,8 @@ cmd.load(pdb_file) #, "protein")
 cmd.load_traj(traj_file)
 cmd.remove("chain A")
 
+correct_path = "outputs_trial/seqs_100/correct_idx.npy"
+correct_idx = np.load(correct_path)
 # 设置视角和显示选项
 # cmd.viewport(800, 600)
 # cmd.bg_color("white")
