@@ -93,7 +93,7 @@ mean_seq_rec = np.sum(tri) / np.sum(tri>0)
 print("mean seq rec", mean_seq_rec)
 
 # GraDe-IF
-os.chdir("/scratch/network/yy1325")
+# os.chdir("/scratch/network/yy1325")
 fa_folder = "GraDe_IF/output_1_12_wo_diverse/10_50/step_interval_50"
 assert os.path.exists(fa_folder)
 score_list = []
