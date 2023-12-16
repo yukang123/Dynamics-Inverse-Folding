@@ -438,6 +438,7 @@ class Cath_imem(InMemoryDataset):
         return node_scalar_features, node_vector_features
 
     def get_calpha_graph(self, rec, c_alpha_coords, n_coords, c_coords, coords, struc_2nd_res = None):
+
         scalar_feature, vec_feature = self.get_node_features(
             n_coords, c_coords, c_alpha_coords, coord_mask=None, with_coord_mask=False, use_angle=self.use_angle, use_omega=self.use_omega)
 
@@ -629,8 +630,6 @@ class Cath_imem(InMemoryDataset):
         valid_chain_ids = []
         lengths = []
         for i, chain in enumerate(rec):
-            # if chain.get_id() in ignore_chains:
-            #     continue
             chain_coords = []  # num_residues, num_atoms, 3
             chain_c_alpha_coords = []
             chain_n_coords = []
@@ -675,7 +674,6 @@ class Cath_imem(InMemoryDataset):
         valid_c_coords = []
         valid_lengths = []
         invalid_chain_ids = []
-        # ignore_chains = [] if ignore_chains is None else ignore_chains
         for i, chain in enumerate(rec):
             # if chain.get_id() in ignore_chains:
             #     continue            

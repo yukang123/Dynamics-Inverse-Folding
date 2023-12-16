@@ -20,7 +20,7 @@ def get_struc2ndRes(pdb_filename, ignore_chains = None):
     structure = p.get_structure('random_id', pdb_filename)
     model = structure[0]
     # dssp = DSSP(model, pdb_filename, dssp='mkdssp')
-    dssp = DSSP(model, pdb_filename, dssp='../../mkdssp')
+    dssp = DSSP(model, pdb_filename, dssp='/scratch/network/yy1325/trial/Dynamics-Inverse-Folding/mkdssp')
     # From model, extract the list of amino acids
     # model_residues = [(chain.id, residue.id[1]) for chain in model if (ignore_chains is not None and chain.id not in ignore_chains) or ignore_chains is None for residue in chain if residue.id[0] == ' ']
     model_residues = [(chain.id, residue.id[1]) for chain in model if (chain.id not in ignore_chains) for residue in chain if residue.id[0] == ' ']
@@ -54,7 +54,6 @@ def get_struc2ndRes(pdb_filename, ignore_chains = None):
     return ss_encoding
 
 def prepare_graph(data):
-    # print(data.keys())
     del data['distances']
     del data['edge_dist']
     mu_r_norm=data.mu_r_norm
@@ -85,7 +84,6 @@ def pdb2graph(filename,normalize_path = 'dataset_src/mean_attr.pt', ignore_chain
     struc_2nd_res = get_struc2ndRes(filename, ignore_chains=ignore_chains)
     rec_graph = dataset.get_calpha_graph(
                 rec, c_alpha_coords, n_coords, c_coords, rec_coords, struc_2nd_res)
-    print(rec_graph)
     if rec_graph:
         normalize_transform = NormalizeProtein(filename=normalize_path)
         
@@ -102,7 +100,7 @@ if __name__ == '__main__':
     error_pdb = []
     for key in ['test','validation','train']:
         pdb_dir =f'dataset/raw/{key}/'
-        save_dir = f'dataset/full_aa/process/{key}/'
+        save_dir = f'dataset/process/{key}/'
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         filename_list = [i for i in os.listdir(pdb_dir) if i.endswith('.pdb')]
