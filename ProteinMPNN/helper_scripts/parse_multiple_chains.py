@@ -112,14 +112,15 @@ def main(args):
     if args.max_units is not None:
         # biounit_names = biounit_names[:args.max_units] 
         mid_list = []
-        for i in range(args.max_units):
+        for i in range(0, args.max_units, args.interval):
            filename = "{:0>4d}.pdb".format(i)
            filepath = os.path.join(folder_with_pdbs_path, filename)
            if filepath in biounit_names:
               mid_list.append(filepath)
         biounit_names = mid_list
-
+    print(len(biounit_names))
     for biounit in tqdm(biounit_names):
+        print(biounit)
         my_dict = {}
         s = 0
         concat_seq = ''
@@ -169,6 +170,8 @@ if __name__ == "__main__":
     argparser.add_argument("--output_path", type=str, help="Path where to save .jsonl dictionary of parsed pdbs")
     argparser.add_argument("--ca_only", action="store_true", default=False, help="parse a backbone-only structure (default: false)")
     argparser.add_argument("--max_units", default=None, type=int)
+    argparser.add_argument("--interval", default=1, type=int)
+
 
     args = argparser.parse_args()
     main(args)

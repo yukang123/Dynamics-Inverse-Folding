@@ -475,41 +475,6 @@ def main(args):
                     print(f'{num_seqs} sequences of length {total_length} generated in {dt} seconds')
 
         if len(S_sample_all_list_1) > 1:
-            # assert BATCH_COPIES == 1
-            # seq_rec_rate_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
-            # correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
-            # # inter_correct_seq_rec_matrix = np.zeros((len(S_sample_all_list), len(S_sample_all_list)))
-            # for i in range(len(S_sample_all_list)):
-            #     for j in range(len(S_sample_all_list)):
-            #         seq_recovery_rate = torch.sum(
-            #             torch.sum(
-            #                 torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
-            #                 torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
-            #                 )*mask_for_loss[0]
-            #                 )/torch.sum(mask_for_loss[0])
-            #         seq_rec_rate_matrix[i,j] = seq_recovery_rate
-            #         uni_mask_ = ((correct_idx_all_list[i] + correct_idx_all_list[j]) > 0)
-            #         # inter_mask_ = (correct_idx_all_list[i] * correct_idx_all_list[j])
-            #         correct_seq_rec = torch.sum(
-            #             torch.sum(
-            #                 torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
-            #                 torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
-            #                 )* uni_mask_
-            #                 )/torch.sum(uni_mask_)
-            #         # inter_correct_seq_rec = torch.sum(
-            #         #     torch.sum(
-            #         #         torch.nn.functional.one_hot(S_sample_all_list[i], 21)*
-            #         #         torch.nn.functional.one_hot(S_sample_all_list[j], 21),axis=-1
-            #         #         )* inter_mask_
-            #         #         )/torch.sum(inter_mask_)
-            #         seq_rec_rate_matrix[i,j] = seq_recovery_rate
-            #         correct_seq_rec_matrix[i,j] = correct_seq_rec
-            #         # inter_correct_seq_rec_matrix[i,j] = inter_correct_seq_rec
-            #         print("{},{} Sequence Recovery Rate: {}".format(i, j, seq_recovery_rate))
-            # matrix_file = base_folder + '/{}/seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
-            # np.save(matrix_file, seq_rec_rate_matrix)
-            # matrix_file = base_folder + '/{}/uni_cor_seq_rec_rate_matrix.npy'.format(args.seq_folder_name)
-            # np.save(matrix_file, correct_seq_rec_matrix)
             sample_num = args.num_seq_per_target
             target_num = len(dataset_valid)
             was_dis_matrix = np.zeros((target_num, target_num))
@@ -554,6 +519,117 @@ def main(args):
             np.save(base_folder + "/{}/was_dis_mat.npy".format(args.seq_folder_name), was_dis_matrix)
             print(mean_rec_matrix)
             np.save(base_folder + "/{}/mean_rec_mat.npy".format(args.seq_folder_name), mean_rec_matrix) 
+
+
+            S_samples_i = S_sample_all_list_1[i]
+            correct_idxs_i = correct_idx_all_list_1[i]
+            mean_rec_list = []
+            was_dis_list = []
+            for j in range(target_num):                    
+                S_samples_j = S_sample_all_list_1[j] 
+                correct_idxs_j = correct_idx_all_list_1[j]
+                seq_rec_rate_matrix =  np.zeros((sample_num, sample_num))
+                correct_seq_rec_matrix =  np.zeros((sample_num, sample_num))
+                for k in range(sample_num):
+                    for l in range(sample_num):
+                        seq_recovery_rate = torch.sum(
+                            torch.sum(
+                                torch.nn.functional.one_hot(S_samples_i[k], 21)*
+                                torch.nn.functional.one_hot(S_samples_j[l], 21),axis=-1
+                                )*mask_for_loss[0]
+                                )/torch.sum(mask_for_loss[0])
+                        seq_rec_rate_matrix[k,l] = seq_recovery_rate.item()
+                        uni_mask_ = ((correct_idxs_i[k] + correct_idxs_j[l]) > 0)
+                        correct_seq_rec = torch.sum(
+                            torch.sum(
+                                torch.nn.functional.one_hot(S_samples_i[k], 21)*
+                                torch.nn.functional.one_hot(S_samples_j[l], 21),axis=-1
+                                )* uni_mask_
+                                )/torch.sum(uni_mask_)
+                        correct_seq_rec_matrix[k,l] = correct_seq_rec.item()                
+                D = 1 - seq_rec_rate_matrix
+                prob1 = prob2 = np.ones(sample_num) / sample_num
+                dis = ot.emd2(prob1, prob2, D)
+                # print(D)
+                # print(np.mean(D))
+                was_dis_list.append(dis)
+                mean_rec_list.append(np.mean(seq_rec_rate_matrix))
+                print("Wassertein Distance: {}".format(dis))
+                print("mean recovery rate: {}".format(np.mean(seq_rec_rate_matrix)))
+            np.save(base_folder + "/{}/was_dis_list.npy".format(args.seq_folder_name), was_dis_list)
+            np.save(base_folder + "/{}/mean_rec_list.npy".format(args.seq_folder_name), mean_rec_list)
+            # for i in range(1, 2):
+            #     k = l =0
+
+            #     correct_idxs_i = correct_idx_all_list_1[i]
+            #     correct_idxs_i_m1 = correct_idx_all_list_1[i-1]
+            #     correct_idxs_i_p1 = correct_idx_all_list_1[i+1]
+
+            #     S_samples_i = S_sample_all_list_1[i] #.to(device)
+            #     S_samples_i_m1 = S_sample_all_list_1[i-1]
+            #     S_samples_i_p1 = S_sample_all_list_1[i+1]
+            #     S_samples_i_p2 = S_sample_all_list_1[i+2]
+            #     S_samples_i_p3 = S_sample_all_list_1[i+3]
+            #     S_samples_i_p4 = S_sample_all_list_1[i+4]
+            #     S_samples_i_p5 = S_sample_all_list_1[i+5]
+            #     S_samples_i_p6 = S_sample_all_list_1[i+6]
+            #     S_samples_i_p7 = S_sample_all_list_1[i+7]
+            #     S_samples_i_p8 = S_sample_all_list_1[i+8]
+            #     same_idx = torch.sum(
+            #         torch.nn.functional.one_hot(S_samples_i[k], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_m1[l], 21),axis=-1
+            #         ) *mask_for_loss[0]
+            #     cor_part_ratio = torch.sum(correct_idxs_i[k] * same_idx) / torch.sum(same_idx) 
+            #     print("cor_part_ratio", cor_part_ratio)
+
+            #     same_idx_3 = torch.sum(
+            #         torch.nn.functional.one_hot(S_samples_i[k], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_m1[l], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_p1[l], 21),axis=-1
+            #         ) *mask_for_loss[0]
+            #     cor_part_ratio_3 = torch.sum(correct_idxs_i[k] * same_idx_3) / torch.sum(same_idx_3)
+            #     print("cor_part_ratio_3", cor_part_ratio_3) 
+
+            #     same_idx_4 = torch.sum(
+            #         torch.nn.functional.one_hot(S_samples_i[k], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_m1[l], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_p1[l], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_p2[l], 21),
+            #         axis=-1
+            #         ) *mask_for_loss[0]
+            #     cor_part_ratio_4 = torch.sum(correct_idxs_i[k] * same_idx_4) / torch.sum(same_idx_4)
+            #     print("cor_part_ratio_4", cor_part_ratio_4)                 
+
+
+            #     same_idx_10 = torch.sum(
+            #         torch.nn.functional.one_hot(S_samples_i[k], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_m1[l], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_p1[l], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_p2[l], 21)*                    
+            #         torch.nn.functional.one_hot(S_samples_i_p3[l], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_p4[l], 21)*                    
+            #         torch.nn.functional.one_hot(S_samples_i_p5[l], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_p6[l], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_p7[l], 21)*
+            #         torch.nn.functional.one_hot(S_samples_i_p8[l], 21),
+            #         axis=-1
+            #         ) *mask_for_loss[0]
+            #     cor_part_ratio_10 = torch.sum(correct_idxs_i[k] * same_idx_10) / torch.sum(same_idx_10)
+            #     print("cor_part_ratio_10", cor_part_ratio_10)  
+
+            #     same_idx_20 = torch.sum(
+            #         torch.prod(torch.stack([torch.nn.functional.one_hot(S_sample_all_list_1[i][k], 21) for i in range(20)], dim=0), dim=0),
+            #         axis=-1
+            #         ) *mask_for_loss[0]
+            #     cor_part_ratio_20 = torch.sum(correct_idxs_i[k] * same_idx_20) / torch.sum(same_idx_20)
+            #     print("cor_part_ratio_20", cor_part_ratio_20)   
+            #     exit()               
+
+
+
+
+
+
     print("trial ends!")
 
    

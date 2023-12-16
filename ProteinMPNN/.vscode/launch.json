@@ -18,23 +18,23 @@
             // },
             // "miDebuggerServerAddress": "172.28.61.131:22",
             "args": [
-                "--jsonl_path", "outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs/parsed_pdbs_trial.jsonl",
+                "--jsonl_path", "outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs/parsed_pdbs_100.jsonl",
                 // "--pdb_path", "/Users/mac/Desktop/Inverse Folding/Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-structure/system.pdb",
                 // "--pdb_path", "../../Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion-0000-pdbs/0000.pdb",
                 "--out_folder", "outputs_12",
                 // "--pdb_path", "/scratch/network/yy1325/data/6m71.pdb",
-                "--num_seq_per_target", "5", //"50",
+                "--num_seq_per_target", "1", //"50",
                 "--sampling_temp", "0.1",
                 "--seed", "37",
-                "--batch_size", "5", //"1",
-                "--seq_folder_name", "seqs",
+                "--batch_size", "1", //"1",
+                "--seq_folder_name", "seqs_100",
                 "--pdb_path_chains", "B",
             ],
             // "args": [
-            //     "--input_path", "../../Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion-0001-pdbs",
-            //     "--output_path", "outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0001-outputs/parsed_pdbs_all.jsonl",
-            //     // "--max_units", "10", 
-
+            //     "--input_path", "../../Data/DESRES-Trajectory_sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion/sarscov2-15235449-peptide-A-no-water-no-ion-0000-pdbs",
+            //     "--output_path", "outputs/sarscov2-15235449-peptide-A-no-water-no-ion-0000-outputs/parsed_pdbs_1000_20.jsonl",
+            //     "--max_units", "1000", 
+            //     "--interval", "20",
             // ]
         }
     ]
