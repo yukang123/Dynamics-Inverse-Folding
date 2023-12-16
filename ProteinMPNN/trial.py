@@ -1,7 +1,7 @@
 import pymol
 import os
 from pymol import cmd
-
+import numpy as np
 # 启动PyMOL
 # pymol.finish_launching()
 
@@ -13,6 +13,8 @@ cmd.load(pdb_file) #, "protein")
 # cmd.png("trial")
 cmd.load_traj(traj_file)
 
+correct_path = "outputs_trial/seqs_100/correct_idx.npy"
+correct_idx = np.load(correct_path)
 # 设置视角和显示选项
 # cmd.viewport(800, 600)
 # cmd.bg_color("white")
